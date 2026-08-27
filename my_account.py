@@ -5,6 +5,7 @@ from telethon import TelegramClient, events
 from google import genai
 from google.genai import types
 import random
+import aiohttp
 
 API_ID = int(os.environ.get("API_ID", "2040"))
 API_HASH = os.environ.get("API_HASH", "b18441a1ff607e10a989891a5462e627")
@@ -28,7 +29,6 @@ async def handle_msg(event):
     
     print(f"📩 رسالة العميل من ({sender_name}): {msg}")
 
-    # برومبت مباشر يضمن التجدد المستمر وعدم الجمود
     prompt = f"""
 أنت مساعد شخصي ذكي للمهندس محمد ضهير (مبرمج ومطور تطبيقات Flutter). 
 الرجاء الرد على رسالة العميل التالية بأسلوب بشري متجدد، قصير (سطر أو سطرين)، ومباشر جداً بدون أي تكرار أو جمود:
@@ -36,12 +36,11 @@ async def handle_msg(event):
 """
 
     try:
-        # استخدام إعدادات تمنع التكرار وتعطي ابداعاً متجدداً لكل رسالة على حدة
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt,
             config=types.GenerateContentConfig(
-                temperature=0.9, # رفع نسبة التنوع والعشوائية البشرية لمنع التكرار
+                temperature=0.9,
                 max_output_tokens=100,
             )
         )
@@ -50,7 +49,6 @@ async def handle_msg(event):
         print(f"AI Error: {e}")
         reply = None
 
-    # بدائل ذكية ومتنوعة في حال حدث أي ضغط
     if not reply:
         fallbacks = [
             f"أهلاً بك يا غالي ♠️. وصلني سؤالك عن ({msg}) وسيتم إبلاغ المهندس محمد ضهير فوراً 💎.",
@@ -61,10 +59,8 @@ async def handle_msg(event):
 
     print(f"✨ رد البوت المتجدد: {reply}")
     
-    # 1. الرد على العميل
     await event.reply(reply)
 
-    # 2. إرسال تنبيه لك في الرسائل المحفوظة
     try:
         notification_text = f"""
 🚨 **تنبيه رسالة جديدة يا مهندس محمد!** ♠️
@@ -80,12 +76,27 @@ async def handle_msg(event):
     except Exception as e:
         print(f"⚠️ خطأ في الإشعار: {e}")
 
-# مسارات الويب المتوافقة تماماً مع UptimeRobot
 async def handle_web(request):
     return web.Response(text="Bot is running smoothly 24/7!", status=200)
 
 async def handle_health(request):
     return web.Response(text="Healthy", status=200)
+
+# وظيفة ذاتية لعمل Pings تمنع نوم السيرفر نهائياً
+async def self_ping():
+    await asyncio.sleep(10) # ننتظر قليلاً ليفتح السيرفر
+    render_url = os.environ.get("RENDER_EXTERNAL_URL")
+    if not render_url:
+        return
+    health_url = f"{render_url}/health"
+    async with aiohttp.ClientSession() as session:
+        while True:
+            try:
+                async with session.get(health_url) as resp:
+                    print(f"🔄 Self-ping status: {resp.status}")
+            except Exception as e:
+                print(f"⚠️ Self-ping error: {e}")
+            await asyncio.sleep(240) # يرسل طلب لنفسه كل 4 دقائق لمنع النوم
 
 async def start_web_server():
     app = web.Application()
@@ -96,6 +107,8 @@ async def start_web_server():
     port = int(os.environ.get("PORT", 10000))
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
+    # تشغيل مهمة البنج الذاتي في الخلفية
+    asyncio.create_task(self_ping())
 
 async def main():
     await start_web_server()
