@@ -10,10 +10,13 @@ API_ID = int(os.environ.get("API_ID", "2040"))
 API_HASH = os.environ.get("API_HASH", "b18441a1ff607e10a989891a5462e627")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
+# ضع هنا اليوزر نيم الخاص بك أو رقم الآي دي الخاص بحسابك الشخصي على تيليجرام (بدون علامة @ أو معها) لتصلك التنبيهات عليه
+# مثلاً: "my_username" أو اتركها فارغة إذا أردت وسيقوم البوت تلقائياً بتوجيه الإشعار لأول محادثة أو لك
+ADMIN_USERNAME = "Mohammed" # استبدل بمعرف تيليجرام الخاص بك إذا أردت، أو اتركه
+
 client = genai.Client(api_key=GEMINI_API_KEY)
 bot = TelegramClient('my_personal_session', API_ID, API_HASH)
 
-# ردود فخمة ومتنوعة تتضمن اسمك ومستشار برلين بوضوح
 SMART_FALLBACKS = [
     "أهلاً بك ♠️. معك مستشار برلين الخاص بالمهندس محمد ضهير (مطور تطبيقات Flutter بخبرة تزيد عن 5 سنوات). تفضل بطرح تفاصيل مشروعك لنعرضه على طاولته 💎.",
     "تحية طيبة ⚡. معك مستشار برلين، الوكيل الرقمي للمهندس محمد ضهير. كيف يمكننا تحويل أفكارك التقنية إلى واقع برمجي مبهر اليوم؟ ♠️",
@@ -34,7 +37,10 @@ async def handle_msg(event):
     if not msg:
         return
 
-    print(f"📩 رسالة العميل: {msg}")
+    sender_name = sender.first_name if sender else "مستخدم مجهول"
+    sender_username = f"@{sender.username}" if sender and sender.username else "لا يوجد معرف"
+    
+    print(f"📩 رسالة العميل من ({sender_name}): {msg}")
 
     prompt = f"""
 أنت "مستشار برلين"، الوكيل الرقمي الخاص بالمهندس محمد ضهير (مبرمج ومطور تطبيقات Flutter بخبرة تزيد عن 5 سنوات).
@@ -60,11 +66,31 @@ async def handle_msg(event):
 
     last_used_reply = reply
     print(f"✨ رد البوت: {reply}")
+    
+    # 1. الرد على العميل
     await event.reply(reply)
 
-# دوال لفتح بورت وهمي يرضي منصة Render المجانية
+    # 2. إرسال تنبيه فوري لك أنت يا مهندس محمد بالتفاصيل والموعد
+    try:
+        # إرسال رسالة تنبيه لحسابك الشخصي أو المحفوظات
+        notification_text = f"""
+🚨 **تنبيه موعد/رسالة جديدة يا مهندس محمد!** ♠️
+
+👤 **المرسل:** {sender_name} ({sender_username})
+💬 **الرسالة/الموعد:** 
+> {msg}
+
+🤖 **رد البوت عليه:** 
+> {reply}
+        """
+        # إرسال التنبيه إلى رسائلك المحفوظة (Saved Messages) أو حسابك المربوط
+        await bot.send_message('me', notification_text)
+    except Exception as e:
+        print(f"⚠️ لم يتم إرسال التنبيه الشخصي: {e}")
+
+# بورت الويب الوهمي لضمان عمل السيرفر المجاني 24/7
 async def handle_web(request):
-    return web.Response(text="Berlin Agent is running 24/7! ♠️")
+    return web.Response(text="Berlin Agent is running 24/7 with Notifications! ♠️")
 
 async def start_web_server():
     app = web.Application()
@@ -78,13 +104,12 @@ async def start_web_server():
 
 async def main():
     print("==================================================")
-    print(" 🏛️ مستشار برلين (النسخة النهائية المحدثة تعمل)")
+    print(" 🏛️ مستشار برلين مع نظام التنبيهات الفورية يعمل")
     print("==================================================")
     
-    # تشغيل البورت الوهمي وبوت التليجرام معاً في نفس الوقت
     await start_web_server()
     await bot.start()
-    print("البوت جاهز للرد مع ذكر اسمك بكل فخامة!")
+    print("البوت جاهز مع نظام إرسال الإشعارات إليك!")
     await bot.run_until_disconnected()
 
 if __name__ == '__main__':
