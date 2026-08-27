@@ -1,4 +1,6 @@
 import os
+import asyncio
+from aiohttp import web
 from telethon import TelegramClient, events
 from google import genai
 import random
@@ -60,13 +62,30 @@ async def handle_msg(event):
     print(f"✨ رد البوت: {reply}")
     await event.reply(reply)
 
-def main():
+# دوال لفتح بورت وهمي يرضي منصة Render المجانية
+async def handle_web(request):
+    return web.Response(text="Berlin Agent is running 24/7! ♠️")
+
+async def start_web_server():
+    app = web.Application()
+    app.router.add_get("/", handle_web)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    port = int(os.environ.get("PORT", 10000))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    print(f"🌐 الويب سيرفر الوهمي يعمل بنجاح على البورت {port}")
+
+async def main():
     print("==================================================")
     print(" 🏛️ مستشار برلين (النسخة النهائية المحدثة تعمل)")
     print("==================================================")
-    bot.start()
+    
+    # تشغيل البورت الوهمي وبوت التليجرام معاً في نفس الوقت
+    await start_web_server()
+    await bot.start()
     print("البوت جاهز للرد مع ذكر اسمك بكل فخامة!")
-    bot.run_until_disconnected()
+    await bot.run_until_disconnected()
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
