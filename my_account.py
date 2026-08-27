@@ -3,7 +3,6 @@ import asyncio
 from aiohttp import web
 from telethon import TelegramClient, events
 from google import genai
-import random
 
 # قراءة البيانات الأساسية بأمان
 API_ID = int(os.environ.get("API_ID", "2040"))
@@ -13,18 +12,8 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 client = genai.Client(api_key=GEMINI_API_KEY)
 bot = TelegramClient('my_personal_session', API_ID, API_HASH)
 
-SMART_FALLBACKS = [
-    "أهلاً بك ♠️. معك مستشار برلين الخاص بالمهندس محمد ضهير (مطور تطبيقات Flutter بخبرة تزيد عن 5 سنوات). تفضل بطرح تفاصيل مشروعك لنعرضه على طاولته 💎.",
-    "تحية طيبة ⚡. معك مستشار برلين، الوكيل الرقمي للمهندس محمد ضهير. كيف يمكننا تحويل أفكارك التقنية إلى واقع برمجي مبهر اليوم؟ ♠️",
-    "أهلاً بك 🏛️. معك مستشار برلين ممثلاً عن المهندس محمد ضهير. نحن هنا لإدارة تطلعاتك البرمجية باحترافية مطلقة، تفضل بطرح استفسارك 💎.",
-    "معك مستشار برلين الخاص بالمهندس محمد ضهير ♠️. نتشرف باستقبال أفكارك ومشاريعك لنرسم معاً خارطة طريق نجاحك التقني ⚡."
-]
-
-last_used_reply = ""
-
 @bot.on(events.NewMessage(incoming=True, func=lambda e: e.is_private))
 async def handle_msg(event):
-    global last_used_reply
     sender = await event.get_sender()
     if sender and sender.bot:
         return
@@ -38,15 +27,15 @@ async def handle_msg(event):
     
     print(f"📩 رسالة العميل من ({sender_name}): {msg}")
 
-    # البرومبت المحسّن لمنع الحشو والتكرار الممل
+    # برومبت صارم يمنع التكرار والحشو ويجعل الرد بشرياً بحتاً
     prompt = f"""
-أنت "مستشار برلين"، الوكيل الرقمي الخاص بالمهندس محمد ضهير (مبرمج ومطور تطبيقات Flutter بخبرة تزيد عن 5 سنوات).
-قواعد الرد الذكية والطبيعية:
-1. تخلص تماماً من الحشو والتكرار الممل؛ لا تكرر جملة التعريف بك في كل رسالة إلا إذا اقتضى الأمر بذكاء.
-2. تحدث بأسلوب بشري، نخبوي، ومختصر جداً (سطر أو سطرين بحد أقصى).
-3. إذا طلب المستخدم موعداً أو استفسر عن شيء، تفاعل معه باحترافية واطلب منه التفاصيل لتسجيلها وإبلاغ المهندس محمد بها.
+أنت الوكيل الرقمي للمهندس محمد ضهير (مطور تطبيقات Flutter بخبرة تزيد عن 5 سنوات).
+قواعد الرد الصارمة جداً:
+1. لا تكرر أبداً أي جمل ترحيبية أو تعريفية (مثل "معك مستشار برلين...") إلا إذا كان السياق يحتم ذلك في أول تواصل فقط. كونك تتحدث مع عميل رد على سؤاله مباشرة بدون مقدمات.
+2. كن طبيعياً، بشرياً، ومختصراً جداً (في حدود سطر أو سطرين).
+3. إذا طلب المستخدم موعداً، اطلب منه بأسلوب راقي تحديد وقت الموعد والتفاصيل ليتم إبلاغ المهندس محمد بها فوراً.
 4. استخدم رموزاً أنيقة باعتدال (مثل ♠️، 💎).
-5. تفاعل بذكاء مع رسالة العميل التالية: "{msg}"
+5. رد على رسالة العميل التالية بذكاء وواقعية: "{msg}"
 """
 
     try:
@@ -54,24 +43,19 @@ async def handle_msg(event):
             model='gemini-2.5-flash',
             contents=prompt,
         )
-        reply = response.text if response and response.text else None
-        if not reply:
-            raise Exception("Empty response")
+        reply = response.text if response and response.text else "أهلاً بك، تفضل بطرح تفاصيل طلبك لنعرضها على المهندس محمد ♠️."
     except Exception as e:
-        available_choices = [r for r in SMART_FALLBACKS if r != last_used_reply]
-        reply = random.choice(available_choices)
-        print(f"⚠️ تم استخدام الرد البديل المتنوع.")
+        reply = "أهلاً بك ♠️. تفضل بطرح تفاصيل استفسارك أو موعدك وسأقوم بإبلاغ المهندس محمد ضهير فوراً 💎."
 
-    last_used_reply = reply
     print(f"✨ رد البوت: {reply}")
     
-    # 1. الرد على العميل
+    # 1. الرد على العميل مباشرة
     await event.reply(reply)
 
     # 2. إرسال تنبيه فوري لك في الرسائل المحفوظة
     try:
         notification_text = f"""
-🚨 **تنبيه موعد/رسالة جديدة يا مهندس محمد!** ♠️
+🚨 **تنبيه رسالة جديدة يا مهندس محمد!** ♠️
 
 👤 **المرسل:** {sender_name} ({sender_username})
 💬 **الرسالة:** 
@@ -84,9 +68,9 @@ async def handle_msg(event):
     except Exception as e:
         print(f"⚠️ لم يتم إرسال التنبيه الشخصي: {e}")
 
-# بورت الويب الوهمي لضمان عمل السيرفر 24/7 على Render المجاني
+# بورت الويب الوهمي لضمان استقرار السيرفر 24/7
 async def handle_web(request):
-    return web.Response(text="Berlin Agent is running 24/7 with Smart Prompts! ♠️")
+    return web.Response(text="Berlin Agent is running 24/7 perfectly! ♠️")
 
 async def start_web_server():
     app = web.Application()
@@ -100,12 +84,12 @@ async def start_web_server():
 
 async def main():
     print("==================================================")
-    print(" 🏛️ مستشار برلين (النسخة المحدثة الذكية تعمل)")
+    print(" 🏛️ مستشار برلين (النسخة النقية الخالية من التكرار)")
     print("==================================================")
     
     await start_web_server()
     await bot.start()
-    print("البوت جاهز وبأفضل أداء بدون تكرار!")
+    print("البوت جاهز وبأفضل أداء بشري!")
     await bot.run_until_disconnected()
 
 if __name__ == '__main__':
