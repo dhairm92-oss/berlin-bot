@@ -3,6 +3,8 @@ import asyncio
 from aiohttp import web
 from telethon import TelegramClient, events
 from google import genai
+from google.genai import types
+import random
 
 API_ID = int(os.environ.get("API_ID", "2040"))
 API_HASH = os.environ.get("API_HASH", "b18441a1ff607e10a989891a5462e627")
@@ -26,30 +28,38 @@ async def handle_msg(event):
     
     print(f"📩 رسالة العميل من ({sender_name}): {msg}")
 
-    # برومبت يطلب من الـ AI أن يكون ذكياً ومتفاعلاً حسب رسالة الشخص بالضبط
+    # برومبت مباشر يضمن التجدد المستمر وعدم الجمود
     prompt = f"""
-أنت مساعد شخصي ذكي للمهندس محمد ضهير (مبرمج ومطور تطبيقات). 
-قم بالرد على رسالة الشخص التالي بأسلوب بشري، طبيعي، ومرن جداً (في حدود سطر أو سطرين)، وتفاعل مع محتوى رسالته مباشرة بدون تكرار أو جمود:
-رسالة العميل: "{msg}"
+أنت مساعد شخصي ذكي للمهندس محمد ضهير (مبرمج ومطور تطبيقات Flutter). 
+الرجاء الرد على رسالة العميل التالية بأسلوب بشري متجدد، قصير (سطر أو سطرين)، ومباشر جداً بدون أي تكرار أو جمود:
+"{msg}"
 """
 
     try:
+        # استخدام إعدادات تمنع التكرار وتعطي ابداعاً متجدداً لكل رسالة على حدة
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.9, # رفع نسبة التنوع والعشوائية البشرية لمنع التكرار
+                max_output_tokens=100,
+            )
         )
-        reply = response.text.strip() if response and response.text else "أهلاً بك، وصلني كلامك وسأبلغ المهندس محمد فوراً ♠️."
+        reply = response.text.strip() if response and response.text else None
     except Exception as e:
         print(f"AI Error: {e}")
-        # ردود متنوعة وديناميكية حسب الكلمة بدلاً من جملة واحدة مملة
-        if "موعد" in msg or "حجز" in msg:
-            reply = "أهلاً بك ♠️. تفضل بتحديد الوقت المناسب للموعد وسأقوم بتسجيله وإبلاغ المهندس محمد فوراً 💎."
-        elif "مين" in msg or "من أنت" in msg:
-            reply = "أنا المساعد الرقمي الخاص بالمهندس محمد ضهير، مبرمج ومطور تطبيقات Flutter ⚡."
-        else:
-            reply = "أهلاً بك ♠️. تفضل بطرح تفاصيل طلبك وسأقوم بعرضها على المهندس محمد."
+        reply = None
 
-    print(f"✨ رد البوت: {reply}")
+    # بدائل ذكية ومتنوعة في حال حدث أي ضغط
+    if not reply:
+        fallbacks = [
+            f"أهلاً بك يا غالي ♠️. وصلني سؤالك عن ({msg}) وسيتم إبلاغ المهندس محمد ضهير فوراً 💎.",
+            f"تحيبة طيبة ⚡. تم تسجيل طلبك بخصوص '{msg}' وإرساله مباشرة للمهندس محمد.",
+            "أهلاً بك ♠️. تفضل بتوضيح التفاصيل أكثر وسأقوم بعرضها على طاولة المهندس محمد فوراً 💎."
+        ]
+        reply = random.choice(fallbacks)
+
+    print(f"✨ رد البوت المتجدد: {reply}")
     
     # 1. الرد على العميل
     await event.reply(reply)
