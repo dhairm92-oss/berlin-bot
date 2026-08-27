@@ -80,13 +80,17 @@ async def handle_msg(event):
     except Exception as e:
         print(f"⚠️ خطأ في الإشعار: {e}")
 
-# تعديل الرد ليعطي status=200 بشكل نظامي ليوافق UptimeRobot
+# مسارات الويب المتوافقة تماماً مع UptimeRobot
 async def handle_web(request):
     return web.Response(text="Bot is running smoothly 24/7!", status=200)
+
+async def handle_health(request):
+    return web.Response(text="Healthy", status=200)
 
 async def start_web_server():
     app = web.Application()
     app.router.add_get("/", handle_web)
+    app.router.add_get("/health", handle_health)
     runner = web.AppRunner(app)
     await runner.setup()
     port = int(os.environ.get("PORT", 10000))
@@ -99,4 +103,4 @@ async def main():
     await bot.run_until_disconnected()
 
 if __name__ == '__main__':
-    asyncio.main(main()) if hasattr(asyncio, 'main') else asyncio.run(main())
+    asyncio.run(main())
