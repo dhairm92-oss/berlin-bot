@@ -54,7 +54,7 @@ async def handle_msg(event):
     if not reply:
         fallbacks = [
             f"أهلاً بك يا غالي ♠️. وصلني سؤالك عن ({msg}) وسيتم إبلاغ المهندس محمد ضهير فوراً 💎.",
-            f"تحيبة طيبة ⚡. تم تسجيل طلبك بخصوص '{msg}' وإرساله مباشرة للمهندس محمد.",
+            f"تحية طيبة ⚡. تم تسجيل طلبك بخصوص '{msg}' وإرساله مباشرة للمهندس محمد.",
             "أهلاً بك ♠️. تفضل بتوضيح التفاصيل أكثر وسأقوم بعرضها على طاولة المهندس محمد فوراً 💎."
         ]
         reply = random.choice(fallbacks)
@@ -80,8 +80,9 @@ async def handle_msg(event):
     except Exception as e:
         print(f"⚠️ خطأ في الإشعار: {e}")
 
+# تعديل الرد ليعطي status=200 بشكل نظامي ليوافق UptimeRobot
 async def handle_web(request):
-    return web.Response(text="Bot is running smoothly 24/7!")
+    return web.Response(text="Bot is running smoothly 24/7!", status=200)
 
 async def start_web_server():
     app = web.Application()
@@ -98,4 +99,4 @@ async def main():
     await bot.run_until_disconnected()
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    asyncio.main(main()) if hasattr(asyncio, 'main') else asyncio.run(main())
