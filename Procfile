@@ -1,1 +1,1 @@
-worker: python my_account.py
+web: python my_account.py
