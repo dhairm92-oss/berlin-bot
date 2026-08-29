@@ -1,3 +1,3 @@
-Telethon
-google-genai
+telethon
 aiohttp
+google-genai
