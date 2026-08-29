@@ -13,17 +13,14 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 client = genai.Client(api_key=GEMINI_API_KEY)
 bot = TelegramClient('my_personal_session', API_ID, API_HASH)
 
-# دالة للتحقق من الرسائل لمنع أي تكرار
 processed_messages = set()
 
 @bot.on(events.NewMessage(incoming=True, func=lambda e: e.is_private))
 async def handle_msg(event):
-    # منع معالجة نفس الرسالة مرتين لو تكرر الحدث
     msg_id = event.id
     if msg_id in processed_messages:
         return
     processed_messages.add(msg_id)
-    # تنظيف الذاكرة للمحافظة عليها
     if len(processed_messages) > 100:
         processed_messages.clear()
 
@@ -48,7 +45,7 @@ async def handle_msg(event):
 
     try:
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-2.0-flash',
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.9,
