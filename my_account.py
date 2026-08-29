@@ -5,7 +5,6 @@ from telethon import TelegramClient, events
 from google import genai
 from google.genai import types
 import random
-import aiohttp
 
 API_ID = int(os.environ.get("API_ID", "2040"))
 API_HASH = os.environ.get("API_HASH", "b18441a1ff607e10a989891a5462e627")
@@ -14,8 +13,20 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 client = genai.Client(api_key=GEMINI_API_KEY)
 bot = TelegramClient('my_personal_session', API_ID, API_HASH)
 
+# دالة للتحقق من الرسائل لمنع أي تكرار
+processed_messages = set()
+
 @bot.on(events.NewMessage(incoming=True, func=lambda e: e.is_private))
 async def handle_msg(event):
+    # منع معالجة نفس الرسالة مرتين لو تكرر الحدث
+    msg_id = event.id
+    if msg_id in processed_messages:
+        return
+    processed_messages.add(msg_id)
+    # تنظيف الذاكرة للمحافظة عليها
+    if len(processed_messages) > 100:
+        processed_messages.clear()
+
     sender = await event.get_sender()
     if sender and sender.bot:
         return
@@ -82,22 +93,6 @@ async def handle_web(request):
 async def handle_health(request):
     return web.Response(text="Healthy", status=200)
 
-# وظيفة ذاتية لعمل Pings تمنع نوم السيرفر نهائياً
-async def self_ping():
-    await asyncio.sleep(10) # ننتظر قليلاً ليفتح السيرفر
-    render_url = os.environ.get("RENDER_EXTERNAL_URL")
-    if not render_url:
-        return
-    health_url = f"{render_url}/health"
-    async with aiohttp.ClientSession() as session:
-        while True:
-            try:
-                async with session.get(health_url) as resp:
-                    print(f"🔄 Self-ping status: {resp.status}")
-            except Exception as e:
-                print(f"⚠️ Self-ping error: {e}")
-            await asyncio.sleep(240) # يرسل طلب لنفسه كل 4 دقائق لمنع النوم
-
 async def start_web_server():
     app = web.Application()
     app.router.add_get("/", handle_web)
@@ -107,8 +102,6 @@ async def start_web_server():
     port = int(os.environ.get("PORT", 10000))
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
-    # تشغيل مهمة البنج الذاتي في الخلفية
-    asyncio.create_task(self_ping())
 
 async def main():
     await start_web_server()
