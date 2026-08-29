@@ -1,5 +1,6 @@
 import os
 import asyncio
+import threading
 from aiohttp import web
 from telethon import TelegramClient, events
 from google import genai
@@ -84,26 +85,31 @@ async def handle_msg(event):
     except Exception as e:
         print(f"⚠️ خطأ في الإشعار: {e}")
 
+# تعريف تطبيق aiohttp ليعمل بانسجام تام مع Gunicorn
+routes = web.RouteTableDef()
+
+@routes.get("/")
 async def handle_web(request):
     return web.Response(text="Bot is running smoothly 24/7!", status=200)
 
+@routes.get("/health")
 async def handle_health(request):
     return web.Response(text="Healthy", status=200)
 
-async def start_web_server():
-    app = web.Application()
-    app.router.add_get("/", handle_web)
-    app.router.add_get("/health", handle_health)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    port = int(os.environ.get("PORT", 10000))
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    await site.start()
+app = web.Application()
+app.add_routes(routes)
 
-async def main():
-    await start_web_server()
-    await bot.start()
-    await bot.run_until_disconnected()
+def run_telegram_bot():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    async def start_bot():
+        await bot.start()
+        await bot.run_until_disconnected()
+    loop.run_until_complete(start_bot())
 
-if __name__ == '__main__':
-    asyncio.run(main())
+# تشغيل التيليجرام في الخلفية ليتوافق مع خادم الويب
+if not client and __name__ != '__main__':
+    pass
+
+bot_thread = threading.Thread(target=run_telegram_bot, daemon=True)
+bot_thread.start()
